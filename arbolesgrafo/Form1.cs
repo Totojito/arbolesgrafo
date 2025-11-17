@@ -110,7 +110,7 @@ namespace arbolesgrafo
             
             int totalNodos = arbolJerarquia.ContarNodos();
 
-            MessageBox.Show($"El número total de nodos (puestos/deptos) es: {totalNodos}");
+            MessageBox.Show($"El número total de nodos es: {totalNodos}");
         }
 
        
