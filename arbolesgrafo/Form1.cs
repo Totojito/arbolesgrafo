@@ -15,6 +15,7 @@ namespace arbolesgrafo
     {
       
         private Arbol arbolJerarquia;
+        private Grafo mapaEdificios;
 
         public Form1()
         {
@@ -23,15 +24,17 @@ namespace arbolesgrafo
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            
-
            
+
+            
+            mapaEdificios = new Grafo();
+      
             Nodo raiz = new Nodo("Rectoría");
 
-           
+
             arbolJerarquia = new Arbol(raiz);
 
-           
+   
             arbolJerarquia.Insertar("Rectoría", "Vicerrectoría Académica");
             arbolJerarquia.Insertar("Rectoría", "Vicerrectoría Administrativa");
 
@@ -40,17 +43,45 @@ namespace arbolesgrafo
 
             arbolJerarquia.Insertar("Facultad de Ingeniería", "Departamento de Sistemas");
             arbolJerarquia.Insertar("Facultad de Ingeniería", "Departamento Civil");
+  
 
-           
-            Nodo nodoBuscado = arbolJerarquia.Buscar("Facultad de Ingeniería");
-            if (nodoBuscado != null)
+            mapaEdificios = new Grafo();
+
+            mapaEdificios.AgregarVertice("Biblioteca");
+            mapaEdificios.AgregarVertice("Cafetería");
+            mapaEdificios.AgregarVertice("Gimnasio");
+            mapaEdificios.AgregarVertice("Laboratorios");
+            mapaEdificios.AgregarVertice("Rectoría"); 
+
+         
+            mapaEdificios.AgregarArista("Biblioteca", "Cafetería", 50);
+            mapaEdificios.AgregarArista("Biblioteca", "Laboratorios", 100);
+            mapaEdificios.AgregarArista("Cafetería", "Laboratorios", 60);
+            mapaEdificios.AgregarArista("Cafetería", "Gimnasio", 80);
+            mapaEdificios.AgregarArista("Laboratorios", "Gimnasio", 120);
+            mapaEdificios.AgregarArista("Gimnasio", "Rectoría", 70);
+
+          
+            if (mapaEdificios != null)
             {
                 
-                Console.WriteLine("¡Nodo encontrado!");
+                foreach (Vertice v in mapaEdificios.Vertices)
+                {
+                 
+                    cmbOrigen.Items.Add(v.Valor);
+                    cmbDestino.Items.Add(v.Valor);
+                }
+
+              
+                if (cmbOrigen.Items.Count > 0)
+                {
+                    cmbOrigen.SelectedIndex = 0;
+                    cmbDestino.SelectedIndex = 0;
+                }
             }
         }
 
-        
+
         private void btnMostrarArbol_Click(object sender, EventArgs e)
         {
             
@@ -80,6 +111,37 @@ namespace arbolesgrafo
             int totalNodos = arbolJerarquia.ContarNodos();
 
             MessageBox.Show($"El número total de nodos (puestos/deptos) es: {totalNodos}");
+        }
+
+       
+
+        private void btnCalcularRuta_Click(object sender, EventArgs e)
+        {
+         
+            if (mapaEdificios == null)
+            {
+                MessageBox.Show("El mapa de edificios no ha sido inicializado.");
+                return;
+            }
+
+            if (cmbOrigen.SelectedItem == null || cmbDestino.SelectedItem == null)
+            {
+                MessageBox.Show("Por favor, selecciona un origen y un destino.");
+                return;
+            }
+
+
+            string valorOrigen = cmbOrigen.SelectedItem.ToString();
+            string valorDestino = cmbDestino.SelectedItem.ToString();
+
+       
+            mapaEdificios.CalcularRutaMasCorta(valorOrigen);
+
+   
+            string rutaResultado = mapaEdificios.ObtenerRutaMasCorta(valorDestino);
+
+
+            txtArbolResultado.Text = rutaResultado;
         }
     }
 
@@ -119,8 +181,8 @@ namespace arbolesgrafo
         // --- Aquí pondremos las funciones principales ---
 
         /// <summary>
-        /// Busca un nodo en el árbol basado en su valor (nombre).
-        /// Utiliza Búsqueda en Amplitud (BFS).
+        /// Busca un nodo en el árbol basado en su valor.
+        /// Utiliza Búsqueda en Amplitud.
         /// </summary>
         /// <param name="valorBuscado">El string (ej. "Rector") que queremos encontrar.</param>
         /// <returns>El Nodo si se encuentra, o null si no existe.</returns>
@@ -205,7 +267,7 @@ namespace arbolesgrafo
         }
 
         /// <summary>
-        /// Función PRIVADA recursiva que hace el trabajo de recorrer.
+        /// Función privada recursiva que hace el trabajo de recorrer.
         /// </summary>
         /// <param name="nodo">El nodo que estamos visitando ahora.</param>
         /// <param name="nivel">La profundidad (para saber cuánta sangría poner).</param>
@@ -259,4 +321,221 @@ namespace arbolesgrafo
             return conteo;
         }
     }
+   
+    public class Arista
+    {
+        public Vertice VerticeDestino { get; set; }
+        public int Peso { get; set; } 
+
+        public Arista(Vertice destino, int peso)
+        {
+            this.VerticeDestino = destino;
+            this.Peso = peso;
+        }
+    }
+   
+    public class Vertice
+    {
+        public string Valor { get; set; } 
+
+    
+        public List<Arista> Aristas { get; set; }
+
+
+        public int DistanciaMinima { get; set; }
+        public Vertice VerticeAnterior { get; set; }
+        public bool Visitado { get; set; }
+
+
+        public Vertice(string valor)
+        {
+            this.Valor = valor;
+            this.Aristas = new List<Arista>();
+
+
+            this.DistanciaMinima = int.MaxValue; 
+            this.VerticeAnterior = null;
+            this.Visitado = false;
+        }
+    }
+
+    public class Grafo
+    {
+
+        public List<Vertice> Vertices { get; set; }
+
+        public Grafo()
+        {
+            this.Vertices = new List<Vertice>();
+        }
+
+
+        public void AgregarVertice(string valor)
+        {
+
+            if (BuscarVertice(valor) == null)
+            {
+                Vertices.Add(new Vertice(valor));
+            }
+        }
+
+        /// <summary>
+        /// Añade una Arista (camino) entre dos edificios.
+        /// :)
+        /// </summary>
+        /// <param name="valorOrigen">Nombre del edificio A</param>
+        /// <param name="valorDestino">Nombre del edificio B</param>
+        /// <param name="peso">Distancia entre A y B</param>
+        public void AgregarArista(string valorOrigen, string valorDestino, int peso)
+        {
+            Vertice origen = BuscarVertice(valorOrigen);
+            Vertice destino = BuscarVertice(valorDestino);
+
+
+            if (origen != null && destino != null)
+            {
+           
+                origen.Aristas.Add(new Arista(destino, peso));
+
+      
+                destino.Aristas.Add(new Arista(origen, peso));
+            }
+        }
+
+ 
+        public Vertice BuscarVertice(string valor)
+        {
+ 
+            foreach (Vertice v in Vertices)
+            {
+                if (v.Valor == valor)
+                {
+                    return v;
+                }
+            }
+            return null; 
+        }
+
+
+
+        /// <summary>
+        /// Implementación del Algoritmo de Dijkstra.
+        /// Encuentra la ruta más corta desde un vértice de origen a todos los demás.
+        /// </summary>
+        /// <param name="valorOrigen">El nombre del edificio donde empezamos.</param>
+        public void CalcularRutaMasCorta(string valorOrigen)
+        {
+  
+            Vertice origen = BuscarVertice(valorOrigen);
+            if (origen == null)
+            {
+                return;
+            }
+
+         
+            foreach (Vertice v in Vertices)
+            {
+                v.DistanciaMinima = int.MaxValue; 
+                v.VerticeAnterior = null;
+                v.Visitado = false;
+            }
+
+
+            origen.DistanciaMinima = 0;
+
+      
+            List<Vertice> pendientes = new List<Vertice>(Vertices);
+
+   
+            while (pendientes.Count > 0)
+            {
+ 
+                Vertice verticeActual = null;
+                int minimaDistancia = int.MaxValue;
+
+                foreach (Vertice v in pendientes)
+                {
+                    if (v.DistanciaMinima < minimaDistancia)
+                    {
+                        minimaDistancia = v.DistanciaMinima;
+                        verticeActual = v;
+                    }
+                }
+
+
+                if (verticeActual == null)
+                {
+                    break;
+                }
+
+   
+                verticeActual.Visitado = true;
+                pendientes.Remove(verticeActual);
+
+           
+                foreach (Arista arista in verticeActual.Aristas)
+                {
+                    Vertice vecino = arista.VerticeDestino;
+
+           
+                    if (vecino.Visitado)
+                    {
+                        continue;
+                    }
+
+             
+                    int nuevaDistancia = verticeActual.DistanciaMinima + arista.Peso;
+
+        
+                    if (nuevaDistancia < vecino.DistanciaMinima)
+                    {
+      
+                        vecino.DistanciaMinima = nuevaDistancia;
+                        vecino.VerticeAnterior = verticeActual;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reconstruye la ruta más corta hacia un destino, DESPUÉS de ejecutar Dijkstra.
+        /// </summary>
+        /// <param name="valorDestino">El nombre del edificio al que queremos llegar.</param>
+        /// <returns>Un string describiendo la ruta y la distancia total.</returns>
+        public string ObtenerRutaMasCorta(string valorDestino)
+        {
+            Vertice destino = BuscarVertice(valorDestino);
+            if (destino == null)
+            {
+                return "El edificio de destino no existe.";
+            }
+
+   
+            if (destino.DistanciaMinima == int.MaxValue)
+            {
+                return $"No se encontró una ruta hacia {valorDestino}.";
+            }
+
+    
+            List<string> ruta = new List<string>();
+            Vertice actual = destino;
+
+            while (actual != null)
+            {
+                ruta.Add(actual.Valor);
+                actual = actual.VerticeAnterior;
+            }
+
+      
+            ruta.Reverse();
+
+      
+            string resultado = $"Ruta más corta a {valorDestino} ({destino.DistanciaMinima}m): \n";
+            resultado += string.Join(" -> ", ruta);
+
+            return resultado;
+        }
+
+    }
+
 }
